@@ -11,8 +11,8 @@
 
 // lower category comes first
 enum class Category : uint16_t { kFastLane = 1, kRender = 1 << 1, kApp = 1 << 2 };
-// lower priority comes first
-enum class Priority : uint16_t { kHigh = 0, kDefault, kLow };
+// higher priority comes first
+enum class Priority : uint16_t { kLow = 0, kDefault, kHigh };
 
 // category masks use OR relation
 using CategoryMask = uint16_t;

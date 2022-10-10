@@ -7,7 +7,7 @@ Scheduler::Scheduler() : queue(std::make_unique<JobsQueue>()) {
 
 	workers.push_back(std::make_unique<Worker>(CategoryMask(Category::kFastLane), queue.get(), &cv, &cv_m_));
 	for (int i = std::max(int(n) - 1, 1); i >= 0; i--) {
-		workers.push_back(std::make_unique<Worker>(kAllCategories, queue.get(), &cv, &cv_m_));
+        workers.push_back(std::make_unique<Worker>(kAllCategories, queue.get(), &cv, &cv_m_));
 	}
 	jobs.reserve(1024);
 }
