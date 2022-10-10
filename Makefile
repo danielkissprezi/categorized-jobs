@@ -1,5 +1,5 @@
 CXX?=clang++
-SRC=main.cpp TaskQueue.cpp Worker.cpp
+SRC=main.cpp TaskQueue.cpp Worker.cpp Scheduler.cpp
 
 run: build
 	./a.out
