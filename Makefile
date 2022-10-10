@@ -7,5 +7,3 @@ run: build
 build:
 	${CXX} -std=c++17 -Wall -Weverything -Wpedantic -Wno-c++98-compat -o a.out ${SRC}
 	chmod +x a.out
-
-
