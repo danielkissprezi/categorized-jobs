@@ -19,13 +19,13 @@ using CategoryMask = uint16_t;
 constexpr CategoryMask kAllCategories = uint16_t(~0U);
 
 struct Job {
+	std::function<void()> f;
 	// category stays the same
 	const Category category;
 	// Priority may change, but should only be changed via Queue APIs once enqueued!
 	Priority priority;
-	std::function<void()> f;
 
-	Job(Category c, Priority p, std::function<void()> fun) : category(c), priority(p), f(std::move(fun)) {
+	Job(Category c, Priority p, std::function<void()> fun) : f(std::move(fun)), category(c), priority(p) {
 	}
 };
 

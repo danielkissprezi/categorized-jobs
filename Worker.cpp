@@ -1,7 +1,7 @@
 #include "api.h"
 
 Worker::Worker(uint16_t categoryMask, JobsQueue* q, std::condition_variable* cv, std::mutex* cv_m)
-	: categoryMask_(categoryMask), queue_(q), cv_(cv), cv_m_(cv_m) {
+	: queue_(q), categoryMask_(categoryMask), cv_(cv), cv_m_(cv_m) {
 	t_ = std::thread([this] {
 		std::unique_lock<std::mutex> l(*cv_m_);
 		l.unlock();
