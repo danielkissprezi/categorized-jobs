@@ -9,8 +9,10 @@ void JobsQueue::Push(Job& t) {
 
 	auto it = queues.find(t.category);
 	if (it == queues.end()) {
-		// If category q is non existent we lazily initialize it
-		// another approach might be to return an error
+		// If category q does not exist, then we lazily initialize the heap
+		//
+		// another approach might be to pre-initialize categories and return an error in this case
+        //
 		std::vector<Job*> v;
 		v.reserve(128);
 		v.push_back(&t);
@@ -25,7 +27,7 @@ Job* JobsQueue::Pop(CategoryMask taskMask) {
 	std::unique_lock<std::mutex> l(qm_);
 
 	for (auto&& [category, heap] : queues) {
-        // TODO: port the de-starvation code from engine here
+		// TODO: port the de-starvation code from engine here
 		if ((CategoryMask(category) & taskMask) != 0 && heap.size() != 0) {
 			std::pop_heap(heap.begin(), heap.end(), cmp);
 			Job* result = heap.back();
