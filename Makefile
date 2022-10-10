@@ -1,0 +1,11 @@
+CXX?=clang++
+SRC=main.cpp TaskQueue.cpp Worker.cpp
+
+run: build
+	./a.out
+
+build:
+	${CXX} -std=c++17 -Wall -Weverything -Wpedantic -Wno-c++98-compat -o a.out ${SRC}
+	chmod +x a.out
+
+
