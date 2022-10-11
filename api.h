@@ -10,9 +10,18 @@
 #include <atomic>
 
 // lower category comes first
-enum class Category : uint16_t { kFastLane = 1, kRender = 1 << 1, kApp = 1 << 2 };
+enum class Category : uint16_t {
+	kFastLane = 1,
+	kRender = 1 << 1,
+	kApp = 1 << 2,
+	kBackground = 1 << 3,
+};
 // higher priority comes first
-enum class Priority : uint16_t { kLow = 0, kDefault, kHigh };
+enum class Priority : uint16_t {
+	kLow = 0,
+	kDefault,
+	kHigh,
+};
 
 // category masks use OR relation
 using CategoryMask = uint16_t;
@@ -30,8 +39,15 @@ struct Job {
 };
 
 class JobsQueue {
+	struct QueueData {
+		std::vector<Job*> heap;
+		int64_t lastRun;
+		// how long this queue may wait before popping one
+		const int64_t waitBudget;
+	};
+
 	// map is sorted by Category, Vec<Job*> is a heap, sorted by Job priority
-	std::map<Category, std::vector<Job*>> queues;
+	std::map<Category, QueueData> queues;
 	std::mutex qm_;
 
 public:
