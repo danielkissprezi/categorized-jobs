@@ -7,7 +7,7 @@ auto cmp = [](auto* lhs, auto* rhs) { return lhs->priority < rhs->priority; };
 
 namespace {
 int64_t CategoryToWaitBudget(Category c) {
-	return 1 * int64_t(c);
+	return 2 * int64_t(c);
 }
 
 Job* Pop(JobsQueue::QueueData& qdata, int64_t now) {
