@@ -13,7 +13,7 @@ Worker::Worker(uint16_t categoryMask, JobsQueue* q, std::condition_variable* cv,
 			} else {
 				// nothing to do
 				l.lock();
-				cv_->wait_for(l, std::chrono::milliseconds(100));
+				cv_->wait_for(l, std::chrono::milliseconds(10));
 				l.unlock();
 			}
 		}
