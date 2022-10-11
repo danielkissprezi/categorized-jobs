@@ -5,9 +5,19 @@
 
 auto cmp = [](auto* lhs, auto* rhs) { return lhs->priority < rhs->priority; };
 
+namespace {
 int64_t CategoryToWaitBudget(Category c) {
-	return 10 * int64_t(c);
+	return 1 * int64_t(c);
 }
+
+Job* Pop(JobsQueue::QueueData& qdata, int64_t now) {
+	std::pop_heap(qdata.heap.begin(), qdata.heap.end(), cmp);
+	Job* result = qdata.heap.back();
+	qdata.heap.pop_back();
+	qdata.lastRun = now;
+	return result;
+}
+}  // namespace
 
 void JobsQueue::Push(Job& t) {
 	std::unique_lock<std::mutex> l(qm_);
@@ -31,20 +41,10 @@ void JobsQueue::Push(Job& t) {
 	}
 }
 
-namespace {
-Job* Pop(JobsQueue::QueueData& qdata, int64_t now) {
-	std::pop_heap(qdata.heap.begin(), qdata.heap.end(), cmp);
-	Job* result = qdata.heap.back();
-	qdata.heap.pop_back();
-	qdata.lastRun = now;
-	return result;
-}
-}  // namespace
-
 Job* JobsQueue::Pop(CategoryMask taskMask) {
 	std::unique_lock<std::mutex> l(qm_);
 
-    // ms
+	// ms
 	const int64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 
 	// first walk backwards and see if a category has exhausted it's wait budget
@@ -54,7 +54,8 @@ Job* JobsQueue::Pop(CategoryMask taskMask) {
 		auto& heap = qdata.heap;
 		auto elapsed = now - qdata.lastRun;
 
-		if ((elapsed > qdata.waitBudget) && (((CategoryMask(it->first) & taskMask) != 0 && heap.size() != 0))) {
+		if ((elapsed > qdata.waitBudget) && ((CategoryMask(it->first) & taskMask) != 0 && heap.size() != 0)) {
+			// printf("timeout category: %hu elapsed: %lld\n", it->first, elapsed);
 			return ::Pop(qdata, now);
 		}
 	}
