@@ -39,6 +39,7 @@ struct Job {
 };
 
 class JobsQueue {
+public:
 	struct QueueData {
 		std::vector<Job*> heap;
 		int64_t lastRun;
@@ -46,11 +47,6 @@ class JobsQueue {
 		const int64_t waitBudget;
 	};
 
-	// map is sorted by Category, Vec<Job*> is a heap, sorted by Job priority
-	std::map<Category, QueueData> queues;
-	std::mutex qm_;
-
-public:
 	JobsQueue() = default;
 	JobsQueue(JobsQueue const&) = delete;
 	~JobsQueue() = default;
@@ -59,6 +55,11 @@ public:
 	Job* Pop(CategoryMask categoryMask);
 	// ????????????
 	void BringToFront(Job& t);
+
+private:
+	// map is sorted by Category, Vec<Job*> is a heap, sorted by Job priority
+	std::map<Category, QueueData> queues;
+	std::mutex qm_;
 };
 
 class Worker {

@@ -31,10 +31,22 @@ void JobsQueue::Push(Job& t) {
 	}
 }
 
+namespace {
+Job* Pop(JobsQueue::QueueData& qdata, int64_t now) {
+	std::pop_heap(qdata.heap.begin(), qdata.heap.end(), cmp);
+	Job* result = qdata.heap.back();
+	qdata.heap.pop_back();
+	qdata.lastRun = now;
+	return result;
+}
+}  // namespace
+
 Job* JobsQueue::Pop(CategoryMask taskMask) {
 	std::unique_lock<std::mutex> l(qm_);
 
+    // ms
 	const int64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+
 	// first walk backwards and see if a category has exhausted it's wait budget
 	//
 	for (auto it = queues.rbegin(); it != queues.rend(); ++it) {
@@ -43,11 +55,7 @@ Job* JobsQueue::Pop(CategoryMask taskMask) {
 		auto elapsed = now - qdata.lastRun;
 
 		if ((elapsed > qdata.waitBudget) && (((CategoryMask(it->first) & taskMask) != 0 && heap.size() != 0))) {
-			std::pop_heap(heap.begin(), heap.end(), cmp);
-			Job* result = heap.back();
-			heap.pop_back();
-			qdata.lastRun = now;
-			return result;
+			return ::Pop(qdata, now);
 		}
 	}
 	// then walk forwards and try to pop the most urgent task
@@ -55,11 +63,7 @@ Job* JobsQueue::Pop(CategoryMask taskMask) {
 	for (auto&& [category, qdata] : queues) {
 		auto& heap = qdata.heap;
 		if (((CategoryMask(category) & taskMask) != 0 && heap.size() != 0)) {
-			std::pop_heap(heap.begin(), heap.end(), cmp);
-			Job* result = heap.back();
-			heap.pop_back();
-			qdata.lastRun = now;
-			return result;
+			return ::Pop(qdata, now);
 		}
 	}
 	// not found
