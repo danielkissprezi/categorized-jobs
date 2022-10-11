@@ -1,8 +1,7 @@
 #include "api.h"
 
 Scheduler::Scheduler() : queue(std::make_unique<JobsQueue>()) {
-	const auto n = 1ULL;
-	// const auto n = std::thread::hardware_concurrency();
+    const auto n = std::thread::hardware_concurrency();
 	workers.reserve(n);
 
 	workers.push_back(std::make_unique<Worker>(CategoryMask(Category::kFastLane), queue.get(), &cv, &cv_m_));

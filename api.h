@@ -30,7 +30,7 @@ struct Job {
 };
 
 class JobsQueue {
-	// map is sorted by Category, tasks are a heap, sorted by Task priority
+	// map is sorted by Category, Vec<Job*> is a heap, sorted by Job priority
 	std::map<Category, std::vector<Job*>> queues;
 	std::mutex qm_;
 
