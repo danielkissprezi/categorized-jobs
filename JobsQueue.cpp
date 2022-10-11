@@ -14,7 +14,7 @@ Job* Pop(JobsQueue::QueueData& qdata, int64_t now) {
 	std::pop_heap(qdata.heap.begin(), qdata.heap.end(), cmp);
 	Job* result = qdata.heap.back();
 	qdata.heap.pop_back();
-	qdata.lastRun = now;
+	qdata.lastPop = now;
 	return result;
 }
 }  // namespace
@@ -52,7 +52,7 @@ Job* JobsQueue::Pop(CategoryMask taskMask) {
 	for (auto it = queues.rbegin(); it != queues.rend(); ++it) {
 		auto& qdata = it->second;
 		auto& heap = qdata.heap;
-		auto elapsed = now - qdata.lastRun;
+		auto elapsed = now - qdata.lastPop;
 
 		if ((elapsed > qdata.waitBudget) && ((CategoryMask(it->first) & taskMask) != 0 && heap.size() != 0)) {
 			// printf("timeout category: %hu elapsed: %lld\n", it->first, elapsed);

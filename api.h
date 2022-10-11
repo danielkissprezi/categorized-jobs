@@ -42,7 +42,7 @@ class JobsQueue {
 public:
 	struct QueueData {
 		std::vector<Job*> heap;
-		int64_t lastRun;
+		int64_t lastPop;
 		// how long this queue may wait before popping one
 		const int64_t waitBudget;
 	};
