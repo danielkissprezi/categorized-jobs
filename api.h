@@ -54,8 +54,6 @@ public:
 
 	void Push(Job& t);
 	Job* Pop(CategoryMask categoryMask);
-	// ????????????
-	void BringToFront(Job& t);
 
 private:
 	// map is sorted by Category, Vec<Job*> is a heap, sorted by Job priority
