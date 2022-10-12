@@ -33,6 +33,7 @@ struct Job {
 	const Category category;
 	// Priority may change, but should only be changed via Queue APIs once enqueued!
 	Priority priority;
+	std::atomic_bool done{false};
 
 	Job(Category c, Priority p, std::function<void()> fun) : f(std::move(fun)), category(c), priority(p) {
 	}
@@ -85,7 +86,6 @@ public:
 
 class Scheduler {
 	// init/deinit order matters!
-	std::vector<std::unique_ptr<Job>> jobs;
 	std::unique_ptr<JobsQueue> queue;
 	std::condition_variable cv;
 	std::mutex cv_m_;
@@ -93,7 +93,7 @@ class Scheduler {
 	std::mutex m_;
 
 public:
-	Scheduler();
+	Scheduler(size_t n = std::thread::hardware_concurrency());
 
-	void Dispatch(std::unique_ptr<Job> j);
+	void Dispatch(Job& j);
 };

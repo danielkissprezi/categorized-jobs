@@ -9,7 +9,7 @@ Worker::Worker(uint16_t categoryMask, JobsQueue* q, std::condition_variable* cv,
 			auto* task = queue_->Pop(categoryMask_);
 			if (task) {
 				(task->f)();
-				// TODO: bookkeeping: mark task as done etc
+				task->done.store(true, std::memory_order_release);
 			} else {
 				// nothing to do
 				l.lock();
