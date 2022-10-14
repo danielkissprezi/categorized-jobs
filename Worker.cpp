@@ -1,3 +1,4 @@
+#include "Worker.h"
 #include "api.h"
 
 Worker::Worker(uint16_t categoryMask, JobsQueue* q, std::condition_variable* cv, std::mutex* cv_m)
