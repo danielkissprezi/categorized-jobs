@@ -11,6 +11,8 @@
 
 #include "Worker.h"
 
+//////////////////////////////////// <public API> ////////////////////////////////////
+
 // lower category comes first
 enum class Category : uint16_t {
 	kFastLane = 1,
@@ -25,9 +27,8 @@ enum class Priority : uint16_t {
 	kHigh,
 };
 
-// category masks use OR relation
+// Masks can match multiple categories
 using CategoryMask = uint16_t;
-constexpr CategoryMask kAllCategories = uint16_t(~0U);
 
 struct Job {
 	std::function<void()> f;
@@ -40,6 +41,22 @@ struct Job {
 	Job(Category c, Priority p, std::function<void()> fun) : f(std::move(fun)), category(c), priority(p) {
 	}
 };
+
+class JobsQueue;
+class JobSystem {
+	// init/deinit order matters!
+	std::unique_ptr<JobsQueue> queue;
+	std::condition_variable cv;
+	std::mutex cv_m_;
+	std::vector<std::unique_ptr<Worker>> workers;
+	std::mutex m_;
+
+public:
+	JobSystem(size_t n = std::thread::hardware_concurrency());
+
+	void Dispatch(Job& j);
+};
+//////////////////////////////////// </public API> ////////////////////////////////////
 
 class JobsQueue {
 public:
@@ -63,16 +80,3 @@ private:
 	std::mutex qm_;
 };
 
-class JobSystem {
-	// init/deinit order matters!
-	std::unique_ptr<JobsQueue> queue;
-	std::condition_variable cv;
-	std::mutex cv_m_;
-	std::vector<std::unique_ptr<Worker>> workers;
-	std::mutex m_;
-
-public:
-	JobSystem(size_t n = std::thread::hardware_concurrency());
-
-	void Dispatch(Job& j);
-};

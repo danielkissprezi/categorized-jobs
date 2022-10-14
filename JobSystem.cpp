@@ -1,5 +1,7 @@
 #include "api.h"
 
+constexpr CategoryMask kAllCategories = uint16_t(~0U);
+
 JobSystem::JobSystem(size_t n) : queue(std::make_unique<JobsQueue>()) {
 	workers.reserve(n);
 
