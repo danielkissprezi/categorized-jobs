@@ -32,7 +32,6 @@ void JobsQueue::Push(Job& t) {
 		v.reserve(128);
 		v.push_back(&t);
 
-		// TODO: budget should be computed from the category
 		auto data = QueueData{v, 0, CategoryToWaitBudget(t.category)};
 		queues.insert(std::make_pair(t.category, data));
 	} else {
@@ -55,7 +54,6 @@ Job* JobsQueue::Pop(CategoryMask acceptMask) {
 		auto elapsed = now - qdata.lastPop;
 
 		if ((elapsed > qdata.waitBudget) && ((CategoryMask(it->first) & acceptMask) != 0 && heap.size() != 0)) {
-			// printf("timeout category: %hu elapsed: %lld\n", it->first, elapsed);
 			return ::Pop(qdata, now);
 		}
 	}
