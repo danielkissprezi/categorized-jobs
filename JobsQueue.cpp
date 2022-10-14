@@ -41,7 +41,7 @@ void JobsQueue::Push(Job& t) {
 	}
 }
 
-Job* JobsQueue::Pop(CategoryMask taskMask) {
+Job* JobsQueue::Pop(CategoryMask acceptMask) {
 	std::unique_lock<std::mutex> l(qm_);
 
 	// ms
@@ -54,7 +54,7 @@ Job* JobsQueue::Pop(CategoryMask taskMask) {
 		auto& heap = qdata.heap;
 		auto elapsed = now - qdata.lastPop;
 
-		if ((elapsed > qdata.waitBudget) && ((CategoryMask(it->first) & taskMask) != 0 && heap.size() != 0)) {
+		if ((elapsed > qdata.waitBudget) && ((CategoryMask(it->first) & acceptMask) != 0 && heap.size() != 0)) {
 			// printf("timeout category: %hu elapsed: %lld\n", it->first, elapsed);
 			return ::Pop(qdata, now);
 		}
@@ -63,7 +63,7 @@ Job* JobsQueue::Pop(CategoryMask taskMask) {
 	//
 	for (auto&& [category, qdata] : queues) {
 		auto& heap = qdata.heap;
-		if (((CategoryMask(category) & taskMask) != 0 && heap.size() != 0)) {
+		if (((CategoryMask(category) & acceptMask) != 0 && heap.size() != 0)) {
 			return ::Pop(qdata, now);
 		}
 	}
