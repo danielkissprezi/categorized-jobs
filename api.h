@@ -32,9 +32,8 @@ using CategoryMask = uint16_t;
 
 struct Job {
 	std::function<void()> f;
-	// category stays the same
-	const Category category;
-	// Priority may change, but should only be changed via Queue APIs once enqueued!
+	// Onceenqueued, category and priority must only be changed via public JobSystem APIs!
+	Category category;
 	Priority priority;
 	std::atomic_bool done{false};
 
