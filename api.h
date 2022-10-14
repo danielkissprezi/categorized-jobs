@@ -1,5 +1,3 @@
-#pragma once
-#include <thread>
 #include <mutex>
 #include <condition_variable>
 #include <functional>
@@ -63,7 +61,7 @@ private:
 	std::mutex qm_;
 };
 
-class Scheduler {
+class JobSystem {
 	// init/deinit order matters!
 	std::unique_ptr<JobsQueue> queue;
 	std::condition_variable cv;
@@ -72,7 +70,7 @@ class Scheduler {
 	std::mutex m_;
 
 public:
-	Scheduler(size_t n = std::thread::hardware_concurrency());
+	JobSystem(size_t n = std::thread::hardware_concurrency());
 
 	void Dispatch(Job& j);
 };

@@ -1,6 +1,6 @@
 #include "api.h"
 
-Scheduler::Scheduler(size_t n) : queue(std::make_unique<JobsQueue>()) {
+JobSystem::JobSystem(size_t n) : queue(std::make_unique<JobsQueue>()) {
 	workers.reserve(n);
 
 	// dedicated workers
@@ -15,7 +15,7 @@ Scheduler::Scheduler(size_t n) : queue(std::make_unique<JobsQueue>()) {
 	printf("initialized n=%zu, %lu workers in total\n", n, workers.size());
 }
 
-void Scheduler::Dispatch(Job& j) {
+void JobSystem::Dispatch(Job& j) {
 	std::lock_guard<std::mutex> l(m_);
 	queue->Push(j);
 	// wake up threads, because workers have different filters we gotta wake up all
