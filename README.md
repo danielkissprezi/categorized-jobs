@@ -1,3 +1,7 @@
+# Categorized job system example
+
+Example implementation of a job system using both categories and priorities for jobs.
+
 [api.h](api.h) contains an example API.
 
 [main.cpp](main.cpp) has, a somewhat contrived, example of using the API.
