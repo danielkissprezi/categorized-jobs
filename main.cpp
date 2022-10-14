@@ -19,6 +19,7 @@ void ScheduleBunch(JobSystem& s, std::vector<std::unique_ptr<Job>>& jobs, size_t
 int main(int argc, char* argv[]) {
 	std::vector<std::unique_ptr<Job>> jobs;
 	jobs.reserve(20'000);
+    // initialize jobsystem based on argv
 	std::unique_ptr<JobSystem> s = nullptr;
 	if (argc > 1) {
 		char* c;
@@ -31,6 +32,8 @@ int main(int argc, char* argv[]) {
 	} else {
 		s = std::make_unique<JobSystem>();
 	}
+
+    // schedule a lot of work
 	ScheduleBunch(*s, jobs, 30, 3400us, Category::kApp, Priority::kDefault);
 	ScheduleBunch(*s, jobs, 90, 4200us, Category::kRender, Priority::kHigh);
 	ScheduleBunch(*s, jobs, 43, 5ms, Category::kApp, Priority::kHigh);
