@@ -46,24 +46,33 @@ class JobSystem {
 	// init/deinit order matters!
 	std::unique_ptr<JobsQueue> queue;
 	std::condition_variable cv;
-	std::mutex cv_m_;
 	std::vector<std::unique_ptr<Worker>> workers;
-	std::mutex m_;
 
 public:
 	JobSystem(size_t n = std::thread::hardware_concurrency());
 
+	// dispatch remaining work
+	void Dispatch();
 	void Dispatch(Job& j);
 };
 //////////////////////////////////// </public API> ////////////////////////////////////
 
 class JobsQueue {
 public:
-	struct QueueData {
-		std::vector<Job*> heap;
-		int64_t lastPop;
-		// how long this queue may wait before popping one
-		const int64_t waitBudget;
+	struct JobData {
+		Job* j;
+		size_t workerIndex = 0;
+	};
+
+	struct WorkerData {
+		unsigned workerId;
+		unsigned capacity;
+		unsigned assinged = 0;
+		CategoryMask jobFilter;
+
+		/// consume must not call the queue
+		/// consume must copy all data to the worker
+		std::function<void(JobData* begin, JobData* end)> consume;
 	};
 
 	JobsQueue() = default;
@@ -71,11 +80,15 @@ public:
 	~JobsQueue() = default;
 
 	void Push(Job& t);
-	Job* Pop(CategoryMask categoryMask);
+	unsigned AddWorker(unsigned capacity, CategoryMask filter, decltype(WorkerData::consume) consume);
+	void Dispatch();
+
+	void SignalDone(unsigned workerId);
 
 private:
-	// map is sorted by Category, Vec<Job*> is a heap, sorted by Job priority
-	std::map<Category, QueueData> queues;
+	unsigned nextId = 0;
+	std::vector<JobData> jobs;
+	std::vector<WorkerData> workers;
+	size_t totalCapacity_ = 0;
 	std::mutex qm_;
 };
-

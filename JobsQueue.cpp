@@ -10,61 +10,84 @@ int64_t CategoryToWaitBudget(Category c) {
 	return 2 * int64_t(c);
 }
 
-Job* Pop(JobsQueue::QueueData& qdata, int64_t now) {
-	std::pop_heap(qdata.heap.begin(), qdata.heap.end(), cmp);
-	Job* result = qdata.heap.back();
-	qdata.heap.pop_back();
-	qdata.lastPop = now;
-	return result;
-}
 }  // namespace
+
+unsigned JobsQueue::AddWorker(unsigned capacity, CategoryMask filter, decltype(WorkerData::consume) consume) {
+	std::unique_lock<std::mutex> l(qm_);
+	auto id = nextId++;
+	workers.emplace_back(WorkerData{id, capacity, 0, filter, std::move(consume)});
+	totalCapacity_ += capacity;
+	return id;
+}
 
 void JobsQueue::Push(Job& t) {
 	std::unique_lock<std::mutex> l(qm_);
 
-	auto it = queues.find(t.category);
-	if (it == queues.end()) {
-		// If category q does not exist, then we lazily initialize the heap
-		//
-		// another approach might be to pre-initialize categories and return an error in this case
-		//
-		std::vector<Job*> v;
-		v.reserve(128);
-		v.push_back(&t);
-
-		auto data = QueueData{v, 0, CategoryToWaitBudget(t.category)};
-		queues.insert(std::make_pair(t.category, data));
-	} else {
-		it->second.heap.push_back(&t);
-		std::push_heap(it->second.heap.begin(), it->second.heap.end(), cmp);
+	jobs.emplace_back(JobData{&t, 0});
+	if (jobs.size() >= totalCapacity_) {
+		Dispatch();
 	}
 }
 
-Job* JobsQueue::Pop(CategoryMask acceptMask) {
+void JobsQueue::Dispatch() {
 	std::unique_lock<std::mutex> l(qm_);
 
-	// ms
-	const int64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-
-	// first walk backwards and see if a category has exhausted it's wait budget
-	//
-	for (auto it = queues.rbegin(); it != queues.rend(); ++it) {
-		auto& qdata = it->second;
-		auto& heap = qdata.heap;
-		auto elapsed = now - qdata.lastPop;
-
-		if ((elapsed > qdata.waitBudget) && ((CategoryMask(it->first) & acceptMask) != 0 && heap.size() != 0)) {
-			return ::Pop(qdata, now);
-		}
+	if (jobs.size() == 0) {
+		return;	 // nothing to do
 	}
-	// then walk forwards and try to pop the most urgent task
-	//
-	for (auto&& [category, qdata] : queues) {
-		auto& heap = qdata.heap;
-		if (((CategoryMask(category) & acceptMask) != 0 && heap.size() != 0)) {
-			return ::Pop(qdata, now);
-		}
+
+	assert(workers.size() > 0 && "Can't dispatch without workers");
+
+	// sort by category and priority
+	std::sort(jobs.begin(), jobs.end(), [](auto&& a, auto&& b) {
+		auto acat = a.j->category, bcat = b.j->category;
+		return (acat == bcat) ? a.j->priority < b.j->priority : acat < bcat;
+	});
+
+	// basic round robin
+	for (auto&& w : workers) {
+		w.assinged = 0;
 	}
-	// not found
-	return nullptr;
+	size_t len = workers.size();
+	size_t i = len;
+	for (auto&& job : jobs) {
+		// try to find the next that can accept this job
+		// if none is found then this job is skipped? UB? Error?
+		auto next = (i + 1) % len;
+		for (auto j = next; j != i; j = (j + 1) % len) {
+			if (workers[j].assinged < workers[j].capacity) {
+				job.workerIndex = j;
+				++workers[j].assinged;
+				break;
+			}
+		}
+		i = next;
+	}
+
+	// group by workerId
+	// and send batches
+	{
+		std::stable_sort(jobs.begin(), jobs.end(), [](auto&& a, auto&& b) { return a.workerIndex < b.workerIndex; });
+		auto workerIndex = jobs[0].workerIndex;
+		auto i = 0;
+		auto j = 0;
+
+		for (; j < jobs.size(); ++j) {
+			auto wid = jobs[j].workerIndex;
+			if (wid != workerIndex) {
+				// last batch ended, send it
+				workers[workerIndex].consume(&jobs[i], &jobs[j]);
+				i = j;
+			}
+			workerIndex = wid;
+		}
+		// send last batch
+		workers[workerIndex].consume(&jobs[i], &jobs[j]);
+	}
+	jobs.clear();
+}
+
+void JobsQueue::SignalDone(unsigned workerId) {
+	std::unique_lock<std::mutex> l(qm_);
+	workers[workerId].assinged = 0;
 }
