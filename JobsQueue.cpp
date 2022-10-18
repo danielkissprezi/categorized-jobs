@@ -3,14 +3,7 @@
 #include <algorithm>
 #include <chrono>
 
-auto cmp = [](auto* lhs, auto* rhs) { return lhs->priority < rhs->priority; };
-
-namespace {
-int64_t CategoryToWaitBudget(Category c) {
-	return 2 * int64_t(c);
-}
-
-}  // namespace
+#define SENTINEL ~0ULL
 
 unsigned JobsQueue::AddWorker(unsigned capacity, CategoryMask filter, decltype(WorkerData::consume) consume) {
 	std::unique_lock<std::mutex> l(qm_);
@@ -23,8 +16,9 @@ unsigned JobsQueue::AddWorker(unsigned capacity, CategoryMask filter, decltype(W
 void JobsQueue::Push(Job& t) {
 	std::unique_lock<std::mutex> l(qm_);
 
-	jobs.emplace_back(JobData{&t, 0});
+	jobs.emplace_back(JobData{&t, SENTINEL});
 	if (jobs.size() >= totalCapacity_) {
+		l.unlock();
 		Dispatch();
 	}
 }
@@ -67,14 +61,20 @@ void JobsQueue::Dispatch() {
 	// group by workerId
 	// and send batches
 	{
-        // groups are sorted by priority
+		// groups are sorted by priority
 		std::stable_sort(jobs.begin(), jobs.end(), [](auto&& a, auto&& b) { return a.workerIndex < b.workerIndex; });
+		/*
+		for (auto j : jobs) {
+			printf("%zu ", j.workerIndex);
+		}
+		puts("");
+		//*/
 
 		auto workerIndex = jobs[0].workerIndex;
 		auto i = 0;
 		auto j = 0;
 
-		for (; j < jobs.size(); ++j) {
+		for (; j < jobs.size() && workerIndex != SENTINEL; ++j) {
 			auto wid = jobs[j].workerIndex;
 			if (wid != workerIndex) {
 				// last batch ended, send it
@@ -84,12 +84,21 @@ void JobsQueue::Dispatch() {
 			workerIndex = wid;
 		}
 		// send last batch
-		workers[workerIndex].consume(&jobs[i], &jobs[j]);
+		if (workerIndex != SENTINEL) {
+			workers[workerIndex].consume(&jobs[i], &jobs[j]);
+			jobs.clear();
+		} else {
+			auto it = std::remove_if(jobs.begin(), jobs.end(), [](auto&& j) { return j.workerIndex != SENTINEL; });
+			jobs.erase(it, jobs.end());
+		}
 	}
-	jobs.clear();
 }
 
 void JobsQueue::SignalDone(unsigned workerId) {
 	std::unique_lock<std::mutex> l(qm_);
 	workers[workerId].assinged = 0;
+	if (jobs.size() > 0) {
+		l.unlock();
+		Dispatch();
+	}
 }
