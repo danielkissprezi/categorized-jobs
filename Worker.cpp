@@ -17,28 +17,29 @@ Worker::Worker(uint16_t categoryMask, JobsQueue* q)
 		assert(size_ <= capacity_);
 		memcpy(jobData_, begin, sizeof(JobsQueue::JobData) * size_);
 
-		l.unlock();
 		cv_.notify_one();
 	});
 
 	// worker thread
 	t_ = std::thread([this, id] {
-		std::unique_lock<std::mutex> l(cv_m_);
+		std::unique_lock<std::mutex> l(bufM_);
 		l.unlock();
 		while (!done_.load(std::memory_order_relaxed)) {
-			std::unique_lock<std::mutex> g(bufM_);
 			if (size_) {
 				printf("workerId=%u is working on job batch of size=%zu\n", id, size_);
 				auto* jobs = (JobsQueue::JobData*)jobData_;
+				l.lock();
 				for (int i = 0; i < size_; i++) {
 					assert(jobs[i].j);
 					assert(jobs[i].j->f);
 					(jobs)[i].j->f();
 					(jobs)[i].j->done.store(true, std::memory_order_release);
 				}
+				// clear job queue
+				size_ = 0;
 				queue_->SignalDone(id);
+				l.unlock();
 			}
-			g.unlock();
 			l.lock();
 			cv_.wait_for(l, std::chrono::milliseconds(10));
 			l.unlock();

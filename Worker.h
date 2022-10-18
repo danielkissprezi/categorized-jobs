@@ -11,7 +11,6 @@ class Worker {
 	const uint16_t categoryMask_;
 	std::atomic_bool done_{false};
 	std::condition_variable cv_;
-	std::mutex cv_m_;
 
 	// yuck
 	size_t size_ = 0;

@@ -55,7 +55,7 @@ void JobsQueue::Dispatch() {
 		// if none is found then this job is skipped? UB? Error?
 		auto next = (i + 1) % len;
 		for (auto j = next; j != i; j = (j + 1) % len) {
-			if (workers[j].assinged < workers[j].capacity) {
+			if (workers[j].assinged < workers[j].capacity && (CategoryMask(job.j->category) & workers[j].jobFilter) != 0) {
 				job.workerIndex = j;
 				++workers[j].assinged;
 				break;
@@ -67,7 +67,9 @@ void JobsQueue::Dispatch() {
 	// group by workerId
 	// and send batches
 	{
+        // groups are sorted by priority
 		std::stable_sort(jobs.begin(), jobs.end(), [](auto&& a, auto&& b) { return a.workerIndex < b.workerIndex; });
+
 		auto workerIndex = jobs[0].workerIndex;
 		auto i = 0;
 		auto j = 0;
