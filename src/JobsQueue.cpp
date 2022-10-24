@@ -46,7 +46,7 @@ Job* JobsQueue::Pop(CategoryMask acceptMask) {
 	// ms
 	const int64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 
-	// first walk backwards and see if a category has exhausted it's wait budget
+	// first walk backwards and see if a category has exhausted its wait budget
 	//
 	for (auto it = queues.rbegin(); it != queues.rend(); ++it) {
 		auto& qdata = it->second;
