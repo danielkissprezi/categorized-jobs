@@ -3,14 +3,15 @@
 constexpr CategoryMask kAllCategories = uint16_t(~0U);
 
 JobSystem::JobSystem(size_t n) : queue(std::make_unique<JobsQueue>()) {
-	workers.reserve(n);
+	workers.reserve(n + 2);
 
 	// dedicated workers
-	workers.push_back(std::make_unique<Worker>(CategoryMask(Category::kFastLane), queue.get(), &cv, &cv_m_));
-	workers.push_back(std::make_unique<Worker>(CategoryMask(Category::kBackground), queue.get(), &cv, &cv_m_));
+	// workers.push_back(std::make_unique<Worker>(CategoryMask(Category::kFastLane), queue.get(), &cv, &cv_m_));
+	// workers.push_back(std::make_unique<Worker>(CategoryMask(Category::kBackground), queue.get(), &cv, &cv_m_));
+    //
 	// shared workers increase throughput, if there's available hardware
 	// make at least 1 so there's no category that gets stuck
-	for (int i = std::max(int(n) - int(workers.size()), 1); i > 0; i--) {
+	for (int i = std::max(int(n), 1); i > 0; i--) {
 		workers.push_back(std::make_unique<Worker>(kAllCategories, queue.get(), &cv, &cv_m_));
 	}
 
