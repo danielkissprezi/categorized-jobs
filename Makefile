@@ -5,7 +5,10 @@ run: build
 	time ./a.out
 
 build:
-	${CXX} -O3 -std=c++17 -Wno-c++98-compat -o a.out ${SRC} src/main.cpp
+	@${CXX} -O3 -std=c++17 -Wno-c++98-compat -o a.out ${SRC} src/main.cpp
+
+run-wasm: wasm
+	emrun index.html
 
 wasm:
-	emcc -O3 -std=c++17 ${SRC}
+	@emcc -Os -std=c++17 -s PROXY_TO_PTHREAD -s ASSERTIONS=1 -s PTHREAD_POOL_SIZE=16 -s ALLOW_MEMORY_GROWTH=1  -pthread -o index.html ${SRC} src/wasm-main.cpp 

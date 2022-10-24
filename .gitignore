@@ -3,3 +3,8 @@ a.out
 out.txt
 a.out.js
 a.out.wasm
+a.out.worker.js
+index.html
+index.js
+index.wasm
+index.worker.js
